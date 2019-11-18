@@ -1,7 +1,6 @@
 """
 first-class function design pattern practice
 """
-from abc import ABC, abstractmethod
 from collections import namedtuple
 
 Customer = namedtuple('Customer', 'name fidelity')
@@ -33,7 +32,7 @@ class Order:
     def due(self):
         discount = 0
         if self.promotion is not None:
-            discount = self.promotion.discount(self)
+            discount = self.promotion(self)
         return self.total() - discount
 
     def __repr__(self):
@@ -41,48 +40,41 @@ class Order:
         return fmt.format(self.total(), self.due())
 
 
-class Promotion(ABC):
-
-    @abstractmethod
-    def discount(self, order):
-        """
-        apply discount to price
-        """
-        pass
-
-
-class FidelityPromo(Promotion):
+def fidelity_promo(order):
     """
     apply discount 5% of total price to customers who have fidelity 1,000 points
     """
-
-    def discount(self, order):
-        return order.total() * 0.05 if order.customer.fidelity >= 1_000 else 0
+    return order.total() * 0.05 if order.customer.fidelity >= 1_000 else 0
 
 
-class BulkItemPromo(Promotion):
+def bulk_item_promo(order):
     """
     apply discount 10% of total price to customers who order 20 same products
     """
-
-    def discount(self, order):
-        discount = 0
-        for item in order.cart:
-            if item.quantity >= 20:
-                discount += item.total() * 0.1
-        return discount
+    discount = 0
+    for item in order.cart:
+        if item.quantity >= 20:
+            discount += item.total() * 0.1
+    return discount
 
 
-class LargeOrderPromo(Promotion):
+def large_order_promo(order):
     """
     apply discount 7% of total price to customers who order 10 or more different kinds of products
     """
+    distinct_items = {item.product for item in order.cart}
+    if len(distinct_items) >= 10:
+        return order.total() * 0.07
+    return 0
 
-    def discount(self, order):
-        distinct_items = {item.product for item in order.cart}
-        if len(distinct_items) >= 10:
-            return order.total() * 0.07
-        return 0
+
+def best_promo(order):
+    """
+    return max discount
+    """
+    promos = [globals()[name] for name in globals()
+              if name.endswith('_promo') and name != 'best_promo']
+    return max(promo(order) for promo in promos)
 
 
 if __name__ == '__main__':
@@ -91,5 +83,5 @@ if __name__ == '__main__':
     cart = [LineItem('banana', 4, 0.5),
             LineItem('apple', 10, 1.5),
             LineItem('watermelon', 5, 5.0)]
-    print(Order(yun, cart, FidelityPromo()))
-    print(Order(seop, cart, FidelityPromo()))
+    print(Order(yun, cart, fidelity_promo))
+    print(Order(seop, cart, fidelity_promo))
