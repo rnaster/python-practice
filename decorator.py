@@ -2,6 +2,7 @@
 decorator
 when compiling, f1 and f2 are decorated
 """
+import time
 registry = []
 
 
@@ -11,27 +12,14 @@ def register(func):
     return func
 
 
-@register
-def f1():
-    print('running f1()')
+def clock(func):
+    def clocked(*args):
+        t0 = time.perf_counter()
+        result = func(*args)
+        elapsed = time.perf_counter() - t0
+        name = func.__name__
+        arg_str = ', '.join(repr(arg) for arg in args)
+        print('[%.8fs] %s(%s) -> %r' % (elapsed, name, arg_str, result))
+        return result
 
-
-@register
-def f2():
-    print('running f2()')
-
-
-def f3():
-    print('running f3()')
-
-
-def main():
-    print('running main()')
-    print('registry ->', registry)
-    f1();
-    f2();
-    f3()
-
-
-if __name__ == '__main__':
-    main()
+    return clocked
