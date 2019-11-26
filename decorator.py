@@ -4,6 +4,7 @@ when compiling, f1 and f2 are decorated
 """
 import time
 import functools
+
 registry = []
 
 
@@ -11,6 +12,25 @@ def register(func):
     print('running register(%s)' % func)
     registry.append(func)
     return func
+
+
+def register2(active=True):
+    """
+    parameterized decorator factory
+    ex)
+    @register2(active=True)
+    def func(some_args):
+        # something
+        return
+    """
+
+    def real_deco(func):
+        print('running register(active=%s) -> real_deco(%s)' % (active, func))
+        if active:
+            registry.append(func)
+        return func
+
+    return real_deco
 
 
 def clock(func):
@@ -44,3 +64,35 @@ def clock2(func):
         return result
 
     return clocked
+
+
+def clock3(fmt='[{elapsed: 0.8f}s] {name}({args}) -> {result}'):
+    """
+    parameterized decorator factory
+    """
+
+    def real_deco(func):
+        def clocked(*_args):
+            t0 = time.perf_counter()
+            _result = func(*_args)
+            elapsed = time.perf_counter() - t0
+            name = func.__name__
+            args = ', '.join(repr(arg) for arg in _args)
+            result = repr(_result)
+            print(fmt.format(**locals()))
+            return _result
+
+        return clocked
+
+    return real_deco
+
+
+if __name__ == '__main__':
+    @clock3()
+    def snooze(sec):
+        time.sleep(sec)
+        return sec
+
+
+    for i in range(1, 2):
+        snooze(i)
